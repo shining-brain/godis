@@ -51,6 +51,7 @@ func (h *EchoHandler) Handle(ctx context.Context, conn net.Conn) {
 	client := &EchoClient{
 		Conn: conn,
 	}
+	//先在活跃连接列表中加入本连接
 	h.activeConn.Store(client, struct{}{})
 
 	reader := bufio.NewReader(conn)
@@ -60,6 +61,7 @@ func (h *EchoHandler) Handle(ctx context.Context, conn net.Conn) {
 		if err != nil {
 			if err == io.EOF {
 				logger.Info("connection close")
+				//读取完成后在活跃连接列表中删除本连接
 				h.activeConn.Delete(client)
 			} else {
 				logger.Warn(err)
@@ -76,6 +78,8 @@ func (h *EchoHandler) Handle(ctx context.Context, conn net.Conn) {
 }
 
 // Close stops echo handler
+//关闭处理器后，会设置处理器的closing域为true。
+//然后在活跃列表中关闭每一个客户端
 func (h *EchoHandler) Close() error {
 	logger.Info("handler shutting down...")
 	h.closing.Set(true)
